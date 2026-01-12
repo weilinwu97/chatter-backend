@@ -1,5 +1,5 @@
 import { Logger, NotFoundException } from '@nestjs/common';
-import { AbstractDocument } from './abstract.schema';
+import { AbstractEntity } from './abstract.entity';
 import { Model, Types, QueryFilter, UpdateQuery } from 'mongoose';
 
 /**
@@ -9,7 +9,7 @@ import { Model, Types, QueryFilter, UpdateQuery } from 'mongoose';
  * reused across all entities in your application. By extending this class, you get
  * standard database methods without having to rewrite them for each entity.
  *
- * @template TDocument - The type of document this repository manages (must extend AbstractDocument).
+ * @template T - The type of document this repository manages (must extend AbstractEntity).
  *                       Example: User, Post, Comment, etc.
  *
  * @example
@@ -28,7 +28,7 @@ import { Model, Types, QueryFilter, UpdateQuery } from 'mongoose';
  *   }
  * }
  */
-export abstract class AbstractRepository<TDocument extends AbstractDocument> {
+export abstract class AbstractRepository<T extends AbstractEntity> {
   /**
    * Logger instance for this repository.
    *
@@ -54,12 +54,12 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
    * 4. Prevents reassignment after initialization
    *
    * This is equivalent to:
-   *   protected readonly model: Model<TDocument>;
-   *   constructor(model: Model<TDocument>) {
+   *   protected readonly model: Model<T>;
+   *   constructor(model: Model<T>) {
    *     this.model = model;
    *   }
    */
-  constructor(protected readonly model: Model<TDocument>) {}
+  constructor(protected readonly model: Model<T>) {}
 
   /**
    * Creates and saves a new document to the database with an auto-generated MongoDB ObjectId.
@@ -68,14 +68,14 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
    * @returns The saved document as a plain object including the generated _id
    *
    * Key Concepts:
-   * - Omit<TDocument, '_id'> = TypeScript utility type that creates a new type from TDocument
+   * - Omit<T, '_id'> = TypeScript utility type that creates a new type from T
    *                             but excludes the '_id' field
    *                             (user provides data, but not the ID - we generate it)
    * - Types.ObjectId() = Generates a unique MongoDB identifier (12-byte hexadecimal string)
    * - toJSON() = Converts Mongoose document to plain JavaScript object
-   * - 'as unknown as TDocument' = TypeScript type casting (two-step cast for complex types)
+   * - 'as unknown as T' = TypeScript type casting (two-step cast for complex types)
    */
-  async create(document: Omit<TDocument, '_id'>): Promise<TDocument> {
+  async create(document: Omit<T, '_id'>): Promise<T> {
     // Create a new Mongoose document instance (not saved to DB yet)
     const createdDocument = new this.model({
       ...document, // Spread operator: copies all properties from input (email, password, etc.)
@@ -86,7 +86,7 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
     // - save() = Persists the document to MongoDB
     // - toJSON() = Removes Mongoose methods, returns plain data
     // - Type casting ensures TypeScript knows the return type
-    return (await createdDocument.save()).toJSON() as unknown as TDocument;
+    return (await createdDocument.save()).toJSON() as unknown as T;
   }
 
   /**
@@ -103,9 +103,9 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
    *            (faster and lighter, but without Mongoose methods like .save())
    * - await = Pauses execution until the database query completes
    */
-  async findOne(filterQuery: QueryFilter<TDocument>): Promise<TDocument> {
+  async findOne(filterQuery: QueryFilter<T>): Promise<T> {
     // Query the database for a single document matching the filter
-    const document = await this.model.findOne(filterQuery).lean<TDocument>();
+    const document = await this.model.findOne(filterQuery).lean<T>();
 
     // Check if document was found
     if (!document) {
@@ -139,9 +139,9 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
    *                      (prevents race conditions)
    */
   async findOneAndUpdate(
-    filterQuery: QueryFilter<TDocument>,
-    update: UpdateQuery<TDocument>,
-  ): Promise<TDocument> {
+    filterQuery: QueryFilter<T>,
+    update: UpdateQuery<T>,
+  ): Promise<T> {
     // Find and update the document in one atomic operation
     const document = await this.model
       .findOneAndUpdate(
@@ -151,7 +151,7 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
           new: true, // Return the updated document (not the old one)
         },
       )
-      .lean<TDocument>(); // Convert to plain JavaScript object
+      .lean<T>(); // Convert to plain JavaScript object
 
     // Check if document was found and updated
     if (!document) {
@@ -174,15 +174,15 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
    *
    * Key Concepts:
    * - find() = Mongoose method that returns ALL documents matching the filter
-   * - TDocument[] = TypeScript array type notation (array of TDocument)
+   * - T[] = TypeScript array type notation (array of T)
    * - Empty filter {} = Returns all documents in the collection
    *
    * Note: Unlike findOne, this doesn't throw an error if nothing is found.
    * It simply returns an empty array [].
    */
-  async find(filterQuery: QueryFilter<TDocument>): Promise<TDocument[]> {
+  async find(filterQuery: QueryFilter<T>): Promise<T[]> {
     // Query the database for all matching documents and return as plain objects
-    return this.model.find(filterQuery).lean<TDocument[]>();
+    return await this.model.find(filterQuery).lean<T[]>();
   }
 
   /**
@@ -201,13 +201,9 @@ export abstract class AbstractRepository<TDocument extends AbstractDocument> {
    * Use Case: When you want to delete a document and also need to know what was deleted
    * (e.g., for audit logs or to return the deleted data in the API response)
    */
-  async findOneAndDelete(
-    filterQuery: QueryFilter<TDocument>,
-  ): Promise<TDocument> {
+  async findOneAndDelete(filterQuery: QueryFilter<T>): Promise<T> {
     // Find and delete the document in one atomic operation
-    const document = await this.model
-      .findOneAndDelete(filterQuery)
-      .lean<TDocument>(); // Convert to plain JavaScript object
+    const document = await this.model.findOneAndDelete(filterQuery).lean<T>(); // Convert to plain JavaScript object
 
     // Check if document was found and deleted
     if (!document) {
