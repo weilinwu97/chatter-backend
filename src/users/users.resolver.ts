@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { CreateUserInput } from './dto/create-user.input';
@@ -95,9 +95,9 @@ export class UsersResolver {
    *   }
    */
   @Query(() => User, { name: 'user' })
-  findOne(@Args('id', { type: () => Int }) id: number) {
+  findOne(@Args('_id') _id: string) {
     // Delegate to service to find specific user
-    return this.usersService.findOne(id);
+    return this.usersService.findOne(_id);
   }
 
   /**
@@ -117,7 +117,7 @@ export class UsersResolver {
   @Mutation(() => User)
   updateUser(@Args('updateUserInput') updateUserInput: UpdateUserInput) {
     // Delegate to service with user ID and update data
-    return this.usersService.update(updateUserInput.id, updateUserInput);
+    return this.usersService.update(updateUserInput._id, updateUserInput);
   }
 
   /**
@@ -135,8 +135,8 @@ export class UsersResolver {
    *   }
    */
   @Mutation(() => User)
-  removeUser(@Args('id', { type: () => Int }) id: number) {
+  removeUser(@Args('_id') _id: string) {
     // Delegate to service to remove the user
-    return this.usersService.remove(id);
+    return this.usersService.remove(_id);
   }
 }
