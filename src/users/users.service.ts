@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateUserInput } from './dto/create-user.input';
 import { UpdateUserInput } from './dto/update-user.input';
 import { UserRepository } from './users.repository';
+import * as bcrypt from 'bcrypt';
 
 /**
  * Users Service - Contains the business logic for user operations.
@@ -42,9 +43,15 @@ export class UsersService {
    * 3. Create user in database via repository
    * 4. Return the created user object
    */
-  create(createUserInput: CreateUserInput) {
-    // Placeholder - replace with actual implementation
-    return 'This action adds a new user';
+  async create(createUserInput: CreateUserInput) {
+    return this.userRepository.create({
+      ...createUserInput,
+      password: await this.hashPassword(createUserInput.password),
+    });
+  }
+
+  private async hashPassword(password: string) {
+    return await bcrypt.hash(password, 10);
   }
 
   /**
@@ -79,9 +86,8 @@ export class UsersService {
    * 3. Return the user object
    * 4. Handle case where user doesn't exist (repository throws NotFoundException)
    */
-  findOne(id: number) {
-    // Placeholder - replace with actual implementation
-    return `This action returns a #${id} user`;
+  async findOne(_id: string) {
+    return await this.userRepository.findOne({ _id });
   }
 
   /**
@@ -97,9 +103,18 @@ export class UsersService {
    * 3. Call repository.findOneAndUpdate({ _id: id }, updateUserInput)
    * 4. Return the updated user object
    */
-  update(id: number, updateUserInput: UpdateUserInput) {
-    // Placeholder - replace with actual implementation
-    return `This action updates a #${id} user`;
+  async update(_id: string, updateUserInput: UpdateUserInput) {
+    return await this.userRepository.findOneAndUpdate(
+      { _id },
+      {
+        $set: {
+          ...updateUserInput,
+          ...(updateUserInput.password && {
+            password: this.hashPassword(updateUserInput.password),
+          }),
+        },
+      },
+    );
   }
 
   /**
@@ -113,8 +128,7 @@ export class UsersService {
    * 2. Optionally: Clean up related data (user's posts, comments, etc.)
    * 3. Return the deleted user object (useful for confirmation)
    */
-  remove(id: number) {
-    // Placeholder - replace with actual implementation
-    return `This action removes a #${id} user`;
+  async remove(_id: string) {
+    return await this.userRepository.findOneAndDelete({ _id });
   }
 }
