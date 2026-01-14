@@ -16,6 +16,7 @@ import { LoggerModule } from 'nestjs-pino';
       isGlobal: true,
       validationSchema: Joi.object({
         MONGODB_URI: Joi.string().required(),
+        DB_NAME: Joi.string().required(),
       }),
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
