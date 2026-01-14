@@ -44,7 +44,7 @@ export class UsersService {
    * 4. Return the created user object
    */
   async create(createUserInput: CreateUserInput) {
-    return this.userRepository.create({
+    return await this.userRepository.create({
       ...createUserInput,
       password: await this.hashPassword(createUserInput.password),
     });
