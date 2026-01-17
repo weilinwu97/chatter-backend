@@ -41,5 +41,6 @@ import { User, UserSchema } from './entities/user.entity';
    * Dependency flow: Resolver -> Service -> Repository -> Database
    */
   providers: [UsersResolver, UsersService, UserRepository],
+  exports: [UsersService],
 })
 export class UsersModule {}
