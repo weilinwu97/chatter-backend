@@ -3,6 +3,10 @@ import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { CreateUserInput } from './dto/create-user.input';
 import { UpdateUserInput } from './dto/update-user.input';
+import { UseGuards } from '@nestjs/common';
+import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
+import { CurrentUser } from 'src/auth/current-user.decorator';
+import * as tokenPayloadInterface from 'src/auth/token-payload.interface';
 
 /**
  * Users GraphQL Resolver - The entry point for all user-related GraphQL operations.
@@ -73,6 +77,7 @@ export class UsersResolver {
    *   }
    */
   @Query(() => [User], { name: 'users' })
+  @UseGuards(GqlAuthGuard)
   findAll() {
     // Delegate to service to fetch all users
     return this.usersService.findAll();
@@ -95,6 +100,7 @@ export class UsersResolver {
    *   }
    */
   @Query(() => User, { name: 'user' })
+  @UseGuards(GqlAuthGuard)
   findOne(@Args('_id') _id: string) {
     // Delegate to service to find specific user
     return this.usersService.findOne(_id);
@@ -115,9 +121,13 @@ export class UsersResolver {
    *   }
    */
   @Mutation(() => User)
-  updateUser(@Args('updateUserInput') updateUserInput: UpdateUserInput) {
+  @UseGuards(GqlAuthGuard)
+  updateUser(
+    @Args('updateUserInput') updateUserInput: UpdateUserInput,
+    @CurrentUser() user: tokenPayloadInterface.TokenPayload,
+  ) {
     // Delegate to service with user ID and update data
-    return this.usersService.update(updateUserInput._id, updateUserInput);
+    return this.usersService.update(user._id, updateUserInput);
   }
 
   /**
@@ -135,8 +145,9 @@ export class UsersResolver {
    *   }
    */
   @Mutation(() => User)
-  removeUser(@Args('_id') _id: string) {
+  @UseGuards(GqlAuthGuard)
+  removeUser(@CurrentUser() user: tokenPayloadInterface.TokenPayload) {
     // Delegate to service to remove the user
-    return this.usersService.remove(_id);
+    return this.usersService.remove(user._id);
   }
 }
