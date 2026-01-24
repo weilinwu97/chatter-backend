@@ -1,8 +1,14 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { GqlContextType, GqlExecutionContext } from '@nestjs/graphql';
 import { User } from 'src/users/entities/user.entity';
 
 const getCurrentUserByContext = (context: ExecutionContext): User => {
-  return context.switchToHttp().getRequest().user;
+  if (context.getType() === 'http') {
+    return context.switchToHttp().getRequest().user;
+  } else if (context.getType<GqlContextType>() === 'graphql') {
+    return GqlExecutionContext.create(context).getContext().req.user;
+  }
+  throw new Error(`Unsupported context type: ${context.getType()}`);
 };
 
 export const CurrentUser = createParamDecorator(

@@ -15,7 +15,7 @@ export class localStrategy extends PassportStrategy(Strategy) {
     try {
       return await this.userService.verifyUser(email, password);
     } catch (err) {
-      throw new UnauthorizedException(err);
+      throw new UnauthorizedException('Credentials are not valid.');
     }
   }
 }
